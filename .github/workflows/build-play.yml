@@ -17,6 +17,7 @@ jobs:
       - name: Convert uploaded logo file to Android launcher icons
         run: |
           python3 -m pip install --quiet pillow
+          rm -rf app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable
           mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi
           cat > /tmp/make_icons.py <<'PY'
           from PIL import Image, ImageOps, ImageDraw
@@ -48,12 +49,10 @@ jobs:
                   return img
 
           def fit_square(img, size):
-              # Use the real full logo. No white circle. No tiny center scaling.
               w, h = img.size
               scale = min(size / w, size / h)
               nw, nh = max(1, int(w * scale)), max(1, int(h * scale))
               resized = img.resize((nw, nh), Image.Resampling.LANCZOS)
-
               canvas = Image.new("RGBA", (size, size), BG)
               canvas.alpha_composite(resized, ((size - nw)//2, (size - nh)//2))
               return canvas
@@ -64,8 +63,8 @@ jobs:
               out = Path("app/src/main/res") / folder
               out.mkdir(parents=True, exist_ok=True)
               icon = fit_square(logo, size)
-              icon.save(out / "ic_launcher.png", "PNG", optimize=True)
-              icon.save(out / "ic_launcher_round.png", "PNG", optimize=True)
+              icon.save(out / "ic_climamap_launcher.png", "PNG", optimize=True)
+              icon.save(out / "ic_climamap_launcher_round.png", "PNG", optimize=True)
           PY
           python3 /tmp/make_icons.py
       - name: Restore signing keystore
