@@ -14,7 +14,7 @@ jobs:
           java-version: 17
       - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
-      - name: Convert uploaded logo file to Android launcher icons
+      - name: Convert uploaded logo file to exact Android launcher icons
         run: |
           python3 -m pip install --quiet pillow
           rm -rf app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable
@@ -32,8 +32,6 @@ jobs:
               "mipmap-xxxhdpi": 192,
           }
 
-          BG = (30, 136, 229, 255)
-
           def load_logo():
               try:
                   img = Image.open(src)
@@ -43,17 +41,23 @@ jobs:
                       raise Exception("Logo too small")
                   return img
               except Exception:
-                  img = Image.new("RGBA", (1024, 1024), BG)
+                  img = Image.new("RGBA", (1024, 1024), (0,0,0,0))
                   d = ImageDraw.Draw(img)
-                  d.text((390, 470), "Clima", fill=(255,255,255,255))
+                  d.rounded_rectangle((80,80,944,944), radius=180, fill=(30,136,229,255))
+                  d.text((390,470), "Clima", fill=(255,255,255,255))
                   return img
 
-          def fit_square(img, size):
+          def exact_icon(img, size):
+              # Preserve original logo background. No injected blue background.
+              # If logo is square, it is simply resized. If not, it is fitted on transparent canvas.
               w, h = img.size
+              if w == h:
+                  return img.resize((size, size), Image.Resampling.LANCZOS)
+
               scale = min(size / w, size / h)
               nw, nh = max(1, int(w * scale)), max(1, int(h * scale))
               resized = img.resize((nw, nh), Image.Resampling.LANCZOS)
-              canvas = Image.new("RGBA", (size, size), BG)
+              canvas = Image.new("RGBA", (size, size), (0,0,0,0))
               canvas.alpha_composite(resized, ((size - nw)//2, (size - nh)//2))
               return canvas
 
@@ -62,7 +66,7 @@ jobs:
           for folder, size in sizes.items():
               out = Path("app/src/main/res") / folder
               out.mkdir(parents=True, exist_ok=True)
-              icon = fit_square(logo, size)
+              icon = exact_icon(logo, size)
               icon.save(out / "ic_climamap_launcher.png", "PNG", optimize=True)
               icon.save(out / "ic_climamap_launcher_round.png", "PNG", optimize=True)
           PY
